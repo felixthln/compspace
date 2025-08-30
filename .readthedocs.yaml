@@ -14,4 +14,8 @@ sphinx:
 # Define the packages needed to build the documentation
 python:
    install:
+     # First install the local package
+     - method: pip
+       path: .
+     # Then the extra docs requirements
      - requirements: docs/requirements.txt

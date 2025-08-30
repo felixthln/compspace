@@ -35,3 +35,9 @@ license_expression = "GPL-3.0-or-later"
 
 [project.urls]
 Repository = "https://github.com/felixthln/simplices"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
