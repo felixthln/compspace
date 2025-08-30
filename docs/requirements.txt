@@ -5,4 +5,5 @@ nbsphinx
 # To allow readthedocs to open the notebooks, ipykernel is needed
 ipykernel
 # In order to use the autodoc feature, import the same packages needed for the package
+matplotlib
 pandas
