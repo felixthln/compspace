@@ -8,13 +8,7 @@
 
 import sys
 from pathlib import Path
-
-# Get the repository root directory
-repo_root = Path(__file__).parents[2]
-print('Root directory: ' + str(list(Path(__file__).parents[4].iterdir())))
-
-# Add the source directory to sys.path
-sys.path.insert(0, str(repo_root / 'src'))
+sys.path.insert(0, str(Path(__file__).parents[2] / 'src'))
 
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
@@ -61,4 +55,3 @@ autoclass_content = 'init'
 autodoc_member_order = 'bysource'
 # Disable the execution of the notebooks as they cannot be run by readthedocs
 # nbsphinx_execute = 'never'
-nbsphinx_execute_arguments = [f'--ExecutePreprocessor.cwd={repo_root}']
