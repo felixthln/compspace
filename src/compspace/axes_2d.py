@@ -4,14 +4,30 @@ from itertools import combinations
 from matplotlib.axes import Axes
 from matplotlib.collections import LineCollection
 
-from .axes_2d_helpers import gen_vertices, bary_to_cart
-from .axes_2d_containers import Simplices2DScatter
+from .utility import bary_to_cart, remove_handles
+from .containers import CompSpaceScatter
 
 
-class Simplices2DAxes(Axes):
+def _gen_vertices(n: int) -> np.ndarray:
+
+    """
+    Create an n-gon (equal edge lengths) in counter clock wise order, then uniformly scale & center it into a
+    standard plotting frame: x ∈ [0, 1]  and  y ∈ [0, sqrt(3)/2]. The identical frame across all n keeps padding,
+    label offsets, and tick lengths consistent for ternary/quaternary/quinary plots.
+    """
+
+    # Everything below ternary is not supported
+    if n < 3:
+        raise ValueError('n ≥ 3 required.')
+    # Start with a unit-circle regular n-gon centered at origin (equal edges)
+    ang = np.pi / 2 + 2 * np.pi * np.arange(n) / n
+    return np.stack([np.cos(ang), np.sin(ang)], axis=1)
+
+
+class CompSpace2DAxes(Axes):
 
     # Name used when registering the projection
-    name = 'simplices2D'
+    name = 'compspace2D'
     # Number of components/dimensions
     _n_dim: int = 3
     # Primary (vertices) and secondary (edge) label parameters
@@ -30,8 +46,8 @@ class Simplices2DAxes(Axes):
     _show_grid: bool = True
     # For keeping track of background artists
     _bg_handles: list = []
-    # Vertices
-    _verts: np.ndarray = gen_vertices(3)
+    # Vertices, default to ternary
+    _vertices: np.ndarray = _gen_vertices(3)
     # Whether we have plotted any data yet
     _has_data: bool = False
 
@@ -57,7 +73,7 @@ class Simplices2DAxes(Axes):
     def _draw_vertices(self):
 
         # Generate the axes from the vertices
-        axes = np.array(list(combinations(self._verts, 2)))
+        axes = np.array(list(combinations(self._vertices, 2)))
         self._bg_handles.append(
             self.add_collection(LineCollection(axes, colors='black', linewidth=1.2, zorder=0))
         )
@@ -69,7 +85,7 @@ class Simplices2DAxes(Axes):
         """
 
         # Incorporate the space by calculating a vector from the center to the vertices and extending it by the spacing
-        pos = (1 + self._prim_label_space) * self._verts
+        pos = (1 + self._prim_label_space) * self._vertices
         # Plot the text on the vertices, silence a wrong pycharm warning
         for i in range(pos.shape[0]):
             # Create the text artist, create a custom attribute to identify it later
@@ -94,8 +110,8 @@ class Simplices2DAxes(Axes):
                 # X(t) = level*V[j] + (1-level) * ((1-t)*V[i] + t*V[k]), t in [0,1]
                 # Add it as a single segment between the two endpoints (t=0 and t=1)
                 i, j, k = trip
-                s = pos * self._verts[i] + (1 - pos) * self._verts[j]  # start at t=0
-                e = pos_r * self._verts[j] + (1 - pos_r) * self._verts[k]  # end at t=1
+                s = pos * self._vertices[i] + (1 - pos) * self._vertices[j]  # start at t=0
+                e = pos_r * self._vertices[j] + (1 - pos_r) * self._vertices[k]  # end at t=1
                 segments.append(np.stack([s, e], axis=0))
         # Combine all segments into a single array
         return np.stack(segments, axis=0)
@@ -146,42 +162,21 @@ class Simplices2DAxes(Axes):
         # Position the labels along the tick direction, further out than the tick end
         label_pos = self._gen_ticks(ticks, self._tick_label_space)[:, 1, :]
         # Plot the text next to the ticks
-        for (x, y), t in zip(label_pos, np.tile(labels, self._verts.shape[0])):
+        for (x, y), t in zip(label_pos, np.tile(labels, self._vertices.shape[0])):
             self._bg_handles.append(
                 self.text(x, y, t, fontsize=9, ha='center', va='center', zorder=0)
             )
 
-    @staticmethod
-    def _remove_handles(handles, keyword: str = None) -> None:
-
-        """
-        Method to remove artists stored in a list and clear the list.
-
-        :param handles: list of artists all artists
-        :param keyword: keyword for an attribute to filter the artists by
-        :return:
-        """
-
-        # Filter the artists by the keyword if provided
-        handles = [h for h in handles if getattr(h, keyword, False) is not True] if keyword else handles
-        # Remove artists, try-except in case already removed by garbage collection
-        for h in handles:
-            try:
-                h.remove()
-            except Exception:
-                pass
-        handles.clear()
-
     def _draw_background(self) -> None:
 
         """
-        Redraws the polygon outline, vertex labels, and ternary extras.
+        Redraws the polygon outline, vertex labels, optionally ticks and grid.
 
         :return:
         """
 
         # Remove all previously drawn background artists
-        self._remove_handles(self._bg_handles)
+        remove_handles(self._bg_handles)
         # Generate the axes from the vertices
         self._draw_vertices()
         # If the ticks are enabled, draw ticks and labels
@@ -192,8 +187,8 @@ class Simplices2DAxes(Axes):
         if self._show_grid:
             self._draw_grid()
         # Set the axes limits based on the vertices
-        self.set_xlim(np.min(self._verts[:, 0]) - 0.1, np.max(self._verts[:, 0]) + 0.1)
-        self.set_ylim(np.min(self._verts[:, 1]) - 0.1, np.max(self._verts[:, 1]) + 0.1)
+        self.set_xlim(np.min(self._vertices[:, 0]) - 0.1, np.max(self._vertices[:, 0]) + 0.1)
+        self.set_ylim(np.min(self._vertices[:, 1]) - 0.1, np.max(self._vertices[:, 1]) + 0.1)
 
     def _redraw_background(self) -> None:
 
@@ -202,7 +197,7 @@ class Simplices2DAxes(Axes):
         """
 
         # Calculate the new vertices
-        self._verts = gen_vertices(self._n_dim)
+        self._vertices = _gen_vertices(self._n_dim)
         # Redraw the new background
         self._apply_base_axes_style()
         self._draw_background()
@@ -214,7 +209,7 @@ class Simplices2DAxes(Axes):
         """
 
         # Remove all previously drawn vertices label artists
-        self._remove_handles(self._label_handles, keyword='is_prim_label')
+        remove_handles(self._label_handles, keyword='is_prim_label')
         # Draw the vertex labels again
         self._draw_prim_labels()
 
@@ -231,9 +226,9 @@ class Simplices2DAxes(Axes):
             return angle
 
         # Iterate over all consecutive pairs of vertices
-        _verts_r = np.roll(self._verts, -1, axis=0)
+        _verts_r = np.roll(self._vertices, -1, axis=0)
         labels = np.roll(self._sec_labels, -1)
-        for i, (v0, v1, label) in enumerate(zip(self._verts, _verts_r, labels)):
+        for i, (v0, v1, label) in enumerate(zip(self._vertices, _verts_r, labels)):
             # Calculate their midpoint
             midpoint = 0.5 * (v0 + v1)
             # Rotate clockwise to get the normal (+y, -x) and then flip to turn outwards
@@ -250,7 +245,7 @@ class Simplices2DAxes(Axes):
             self._label_handles.append(txt)
 
     def scatter(self, comps: np.ndarray | pd.DataFrame, *args, labels: list[str] = None,
-                **kwargs) -> Simplices2DScatter:
+                **kwargs) -> CompSpaceScatter:
 
         # Convert the compositions to a numpy array if a DataFrame is provided, store the column names as labels
         labels = comps.columns.to_list() if isinstance(comps, pd.DataFrame) else labels
@@ -274,12 +269,12 @@ class Simplices2DAxes(Axes):
             self._prim_labels = labels
             self._redraw_labels()
         # Convert barycentric rows to XY and call the base Axes.scatter
-        cart = bary_to_cart(comps, self._verts)
+        cart = bary_to_cart(comps, self._vertices)
         self._has_data = True
         # Forward the scatter call to the parent class
         paths = super().scatter(cart[:, 0], cart[:, 1], *args, **kwargs)
         # Wrap the collection path in a container to allow updating the data
-        return Simplices2DScatter([paths], self._verts)
+        return CompSpaceScatter([paths], self._vertices)
 
     def set_ticks(self, show: bool = True, ticks: list[str] = None):
 
