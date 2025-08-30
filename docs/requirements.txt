@@ -1,0 +1,8 @@
+# The documentation will use the PyData theme
+pydata-sphinx-theme
+# In order to display Jupyter Notebooks in the documentation, the following package is needed
+nbsphinx
+# To allow readthedocs to open the notebooks, ipykernel is needed
+ipykernel
+# In order to use the autodoc feature, import the same packages needed for the package
+pandas
