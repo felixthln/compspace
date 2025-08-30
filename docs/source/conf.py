@@ -11,7 +11,7 @@ from pathlib import Path
 
 # Get the repository root directory
 repo_root = Path(__file__).parents[2]
-print(repo_root)
+print('Root directory: ' + str(repo_root))
 # Add the source directory to sys.path
 sys.path.insert(0, str(repo_root / 'src'))
 
