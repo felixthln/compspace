@@ -1,17 +1,23 @@
-.. compspace documentation master file, created by
-   sphinx-quickstart on Sat Aug 30 16:12:51 2025.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
+########
+compspace
+########
 
-compspace documentation
-=======================
+``compspace`` is an extension of matplotlib, enabling the plotting of composition spaces in both 2D and 3D for materials
+science.
 
-Add your content using ``reStructuredText`` syntax. See the
-`reStructuredText <https://www.sphinx-doc.org/en/master/usage/restructuredtext/index.html>`_
-documentation for details.
+Documentation
+-------------
 
+If you're new to ``compspace`` we suggest you to start with:
 
 .. toctree::
    :maxdepth: 2
-   :caption: Contents:
 
+   getting_started/index
+
+For plotting examples see:
+
+.. toctree::
+   :maxdepth: 2
+
+   user_guide/index
