@@ -55,3 +55,4 @@ autoclass_content = 'init'
 autodoc_member_order = 'bysource'
 # Disable the execution of the notebooks as they cannot be run by readthedocs
 # nbsphinx_execute = 'never'
+nb_execution_dir = '..'
