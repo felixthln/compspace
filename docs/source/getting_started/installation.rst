@@ -6,7 +6,7 @@ This section goes through the required steps to get started with plotting compos
 Installation
 ------------
 
-Install via pip:
+Install via pip
 ~~~~~~~~~~~~~~~~
 
 The most convenient way of installing the package is via `PyPI <https://pypi.org/project/compspace/>`_ by simply running:
@@ -15,7 +15,7 @@ The most convenient way of installing the package is via `PyPI <https://pypi.org
 
    pip install compspace
 
-Install via GitHub:
+Install via git
 ~~~~~~~~~~~~~~~~~~~
 
 Alternatively, you can install the package from the GitHub directly. If you want to test the package in a separated

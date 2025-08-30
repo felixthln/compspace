@@ -54,4 +54,4 @@ autoclass_content = 'init'
 # When generating the documentation automatically, generate the order of the method descriptions based on the source
 autodoc_member_order = 'bysource'
 # Disable the execution of the notebooks as they cannot be run by readthedocs
-nbsphinx_execute = 'never'
+# nbsphinx_execute = 'never'
