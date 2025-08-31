@@ -1,3 +1,17 @@
+.. raw:: html
+
+   <div class="banner-wrap">
+
+.. image:: _static/banner.svg
+   :alt: Project banner
+   :width: 100%
+   :target: https://github.com/felixthln/compspace
+   :class: hero-banner
+
+.. raw:: html
+
+   </div>
+
 ########
 compspace
 ########

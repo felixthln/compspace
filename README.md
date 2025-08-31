@@ -1,10 +1,10 @@
 <p align="center">
-  <a href="./assets/banner.svg">
-    <img src="./assets/banner.png" alt="Project banner" width="1000">
+  <a href="docs/source/_static/banner.svg">
+    <img src="docs/source/_static/banner.png" alt="Project banner" width="1000">
   </a>
 </p>
 
-# compspace plotting
+# compspace
 
 `compspace` is a Python package to visualize composition spaces for materials science applications. It builds on top 
 of [matplotlib](https://matplotlib.org/) by registering new projections for plotting composition spaces in 2D and 3D.
