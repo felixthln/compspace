@@ -12,6 +12,10 @@
 
    </div>
 
+.. raw:: html
+
+   <div style="margin-bottom:2rem"></div>
+
 
 ``compspace`` is an extension of matplotlib, enabling the plotting of composition spaces in both 2D and 3D for materials
 science.
