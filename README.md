@@ -1,11 +1,19 @@
-# compspace
+<p align="center">
+  <a href="./assets/banner.svg">
+    <img src="./assets/banner.png" alt="Project banner" width="1000">
+  </a>
+</p>
 
-`compspace` is a Python package to visualize composition spaces for materials science applications. It was originally
-developed for combinatorial materials science.
+# compspace plotting
+
+`compspace` is a Python package to visualize composition spaces for materials science applications. It builds on top 
+of [matplotlib](https://matplotlib.org/) by registering new projections for plotting composition spaces in 2D and 3D.
 
 ## Installation & Documentation
 
-Instructions on how to install the package will be available soon.
+The package is on pip and can be easily installed via `pip install compspace`. More detailed instructions in how to 
+install the package as well as user guides can be found on 
+[ReadTheDocs](https://compspace.readthedocs.io/en/latest/index.html).
 
 ## Terms of Use
 

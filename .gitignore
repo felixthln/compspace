@@ -1,2 +1,5 @@
 # Hide the idea directory of pycharm
 .idea
+# Don't include local builds and distributions
+build
+dist

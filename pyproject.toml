@@ -3,7 +3,7 @@ requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "simplices"
+name = "compspace"
 version = "0.0.1"
 description = "A matplotlib-based plotting library for visualizing composition spaces."
 authors = [

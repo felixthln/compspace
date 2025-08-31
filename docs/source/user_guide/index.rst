@@ -1,4 +1,4 @@
-Plot examples
+Example plots
 ==========
 
 This section contains practical guides in how to use the package.

@@ -8,7 +8,7 @@ science.
 Documentation
 -------------
 
-If you're new to ``compspace`` we suggest you to start with:
+If you're new to plotting compositional spaces with ``compspace`` we suggest you to start with:
 
 .. toctree::
    :maxdepth: 2
