@@ -28,31 +28,34 @@ class CompSpace2DAxes(Axes):
 
     # Name used when registering the projection
     name = 'compspace2D'
-    # Number of components/dimensions
-    _n_dim: int = 3
-    # Primary (vertices) and secondary (edge) label parameters
-    _prim_labels: list[str] = None
-    _prim_label_space: float = 0.25
-    _sec_labels: list[str] = None
+
+    # Label and tick parameters
+    _prim_label_space: float = 0.3
     _sec_label_space: float = 0.25
-    _label_handles: list = []
-    # Tick parameters
     _tick_len: float = 0.02
     _tick_label_space: float = 0.08
-    _tick_positions = np.linspace(0, 1, 11)
-    _show_ticks: bool = True
-    # Grid parameters
-    _grid_pos = np.linspace(0, 1, 11)
-    _show_grid: bool = True
-    # For keeping track of background artists
-    _bg_handles: list = []
-    # Vertices, default to ternary
-    _vertices: np.ndarray = _gen_vertices(3)
-    # Whether we have plotted any data yet
-    _has_data: bool = False
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+
+        # Number of components/dimensions
+        self._n_dim: int = 3
+        # Primary (vertices) and secondary (edge) label parameters
+        self._prim_labels: list[str] | None = None
+        self._sec_labels: list[str] | None = None
+        self._label_handles: list = []
+        # Tick parameters
+        self._tick_positions = np.linspace(0, 1, 11)
+        self._show_ticks: bool = True
+        # Grid parameters
+        self._grid_pos = np.linspace(0, 1, 11)
+        self._show_grid: bool = True
+        # For keeping track of background artists
+        self._bg_handles: list = []
+        # Vertices, default to ternary
+        self._vertices: np.ndarray = _gen_vertices(3)
+        # Whether we have plotted any data yet
+        self._has_data: bool = False
 
         # Draw the initial ternary background
         self._apply_base_axes_style()

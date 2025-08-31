@@ -34,21 +34,24 @@ class CompSpace3DAxes(Axes3D):
 
     # Name used when registering the projection
     name = 'compspace3D'
-    # Number of components/dimensions
-    _n_dim: int = 4
-    # Primary (vertices) label parameters
-    _labels: list[str] = None
+
+    # Label and tick parameters
     _label_space: float = 0.25
-    _label_handles: list = []
-    # For keeping track of background artists
-    _bg_handles: list = []
-    # Vertices, by default plot a tetrahedron
-    _vertices: np.ndarray = _gen_vertices(4)
-    # Whether we have plotted any data yet
-    _has_data: bool = False
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+
+        # Number of components/dimensions
+        self._n_dim: int = 4
+        # Primary (vertices) label parameters
+        self._labels: list[str] | None = None
+        self._label_handles: list = []
+        # For keeping track of background artists
+        self._bg_handles: list = []
+        # Vertices, by default plot a tetrahedron
+        self._vertices: np.ndarray = _gen_vertices(4)
+        # Whether we have plotted any data yet
+        self._has_data: bool = False
 
         # By default, (without any data), plot a tetrahedron
         self._apply_base_axes_style()

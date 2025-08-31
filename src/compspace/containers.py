@@ -39,6 +39,6 @@ class CompSpaceScatter(Container):
     def __getattr__(self, name):
         # Pass either to PathCollection or Path3DCollection
         if isinstance(self.artist, PathCollection):
-            return getattr(self.paths, name)
+            return getattr(self.artist, name)
         elif isinstance(self.artist, Path3DCollection):
-            return getattr(self.paths3d, name)
+            return getattr(self.artist, name)
