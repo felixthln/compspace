@@ -247,9 +247,14 @@ class CompSpace2DAxes(Axes):
             txt._is_sec_label = True
             self._label_handles.append(txt)
 
-    def scatter(self, comps: np.ndarray | pd.DataFrame, *args, labels: list[str] = None,
+    def scatter(self, comps: np.ndarray | pd.DataFrame = None, *args, labels: list[str] = None,
                 **kwargs) -> CompSpaceScatter:
 
+        # Allow to call scatter without data to generate a blank scatter to populate later
+        if comps is None:
+            # Create an empty scatter plot and wrap it in the container
+            sc = super().scatter(*args, **kwargs)
+            return CompSpaceScatter([sc], self._vertices)
         # Convert the compositions to a numpy array if a DataFrame is provided, store the column names as labels
         labels = comps.columns.to_list() if isinstance(comps, pd.DataFrame) else labels
         comps = comps.values if isinstance(comps, pd.DataFrame) else comps
@@ -275,9 +280,9 @@ class CompSpace2DAxes(Axes):
         cart = bary_to_cart(comps, self._vertices)
         self._has_data = True
         # Forward the scatter call to the parent class
-        paths = super().scatter(cart[:, 0], cart[:, 1], *args, **kwargs)
+        sc = super().scatter(cart[:, 0], cart[:, 1], *args, **kwargs)
         # Wrap the collection path in a container to allow updating the data
-        return CompSpaceScatter([paths], self._vertices)
+        return CompSpaceScatter([sc], self._vertices)
 
     def set_ticks(self, show: bool = True, ticks: list[str] = None):
 
@@ -312,3 +317,20 @@ class CompSpace2DAxes(Axes):
         self._sec_labels = labels
         # Draw the secondary labels
         self._draw_sec_labels()
+
+    def set_dim(self, n: int) -> None:
+
+        """
+        Allows to manually set the number of components/dimensions for the background polygon.
+
+        :param n: number of components/dimensions, must be between 3 and 8
+        :return:
+        """
+
+        # Raise error if n is out of bounds
+        if n < 3 or n > 8:
+            raise ValueError('Supported number of components is 3 to 8.')
+        # Update the number of dimensions
+        self._n_dim = n
+        # Redraw the background
+        self._redraw_background()

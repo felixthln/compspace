@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "compspace"
-version = "0.0.2"
+version = "0.0.3"
 description = "A matplotlib-based plotting library for visualizing composition spaces."
 authors = [
     { name = "Felix Thelen", email = "felix.thelen@ruhr-uni-bochum.de" }
