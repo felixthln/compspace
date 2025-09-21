@@ -2,6 +2,8 @@ import matplotlib as mpl
 from matplotlib.projections import register_projection
 from .axes_2d import CompSpace2DAxes
 from .axes_3d import CompSpace3DAxes
+from .animation import rot_animation
+from .convenience import plot_on_comp_space
 
 
 # Restore old 3D rotation style for Matplotlib >= 3.10

@@ -24,16 +24,28 @@ def _gen_vertices(n: int) -> np.ndarray:
     return np.stack([np.cos(ang), np.sin(ang)], axis=1)
 
 
+def _is_close(value: float, to: float, tol: float = 1e-3) -> bool:
+
+    """
+    Helper function to check if two float values are close within a tolerance.
+    """
+
+    return abs(value - to) < tol
+
+
 class CompSpace2DAxes(Axes):
 
     # Name used when registering the projection
     name = 'compspace2D'
 
+    # Label spacing parameters for the labels. The default spacings are dependent on whether tick labels are shown
+    _PRIM_LABEL_SPACE_S: float = 0.08
+    _PRIM_LABEL_SPACE_L: float = 0.25
+    _SEC_LABEL_SPACE_S: float = 0.1
+    _SEC_LABEL_SPACE_L: float = 0.25
     # Label and tick parameters
-    _prim_label_space: float = 0.3
-    _sec_label_space: float = 0.25
     _tick_len: float = 0.02
-    _tick_label_space: float = 0.08
+    _tick_label_space: float = 0.01
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -81,19 +93,28 @@ class CompSpace2DAxes(Axes):
             self.add_collection(LineCollection(axes, colors='black', linewidth=1.2, zorder=0))
         )
 
-    def _draw_prim_labels(self) -> None:
+    def _draw_prim_labels(self, space: float = None) -> None:
 
         """
         Draw the primary (vertex) labels slightly outside the polygon along an averaged outward normal.
+
+        :param space: spacing of the labels from the vertices, if None, use default ones
         """
 
+        # Use the default spacing if none is provided
+        default = (self._PRIM_LABEL_SPACE_L if self._show_ticks else self._PRIM_LABEL_SPACE_S)
+        space = default if space is None else space
         # Incorporate the space by calculating a vector from the center to the vertices and extending it by the spacing
-        pos = (1 + self._prim_label_space) * self._vertices
+        pos = (1 + space) * self._vertices
         # Plot the text on the vertices, silence a wrong pycharm warning
-        for i in range(pos.shape[0]):
+        for i, (x, y) in enumerate(pos):
+            # Compute the angle of the vector from the center to the vertex
+            a = np.degrees(np.arctan2(y, x))
+            # Decide on horizontal and vertical alignment based on the angle
+            ha = 'center' if (_is_close(a, 90) or _is_close(a, -90)) else 'left' if -90 < a < 90 else 'right'
+            va = 'center' if (_is_close(a, 0) or _is_close(a, 180)) else 'bottom' if a > 0 else 'top'
             # Create the text artist, create a custom attribute to identify it later
-            txt = self.text(pos[i, 0], pos[i, 1], self._prim_labels[i], ha='center', va='center', weight='bold',
-                            fontsize=10, zorder=0)
+            txt = self.text(x, y, self._prim_labels[i], ha=ha, va=va, weight='bold', fontsize=10, zorder=0)
             txt._is_prim_label = True
             self._label_handles.append(txt)
         # Extend the limits based on the label positions
@@ -162,12 +183,19 @@ class CompSpace2DAxes(Axes):
 
         # Generate the tick labels based on the number of segments
         labels = (self._tick_positions * 100).astype(int).astype(str)
-        # Position the labels along the tick direction, further out than the tick end
-        label_pos = self._gen_ticks(ticks, self._tick_label_space)[:, 1, :]
+        # Generate longer ticks for finding the label positions further out than the tick ends
+        ticks = self._gen_ticks(ticks, self._tick_len + self._tick_label_space)
         # Plot the text next to the ticks
-        for (x, y), t in zip(label_pos, np.tile(labels, self._vertices.shape[0])):
+        for tick, t in zip(ticks, np.tile(labels, self._vertices.shape[0])):
+            # Compute the angle of the tick vector
+            x, y = tick[1] - tick[0]
+            a = np.degrees(np.arctan2(y, x))
+            # Decide on horizontal and vertical alignment based on the angle
+            ha = 'center' if (_is_close(a, 90) or _is_close(a, -90)) else 'left' if -90 < a < 90 else 'right'
+            va = 'center' if (_is_close(a, 0) or _is_close(a, 180)) else 'bottom' if a > 0 else 'top'
+            # Draw the text
             self._bg_handles.append(
-                self.text(x, y, t, fontsize=9, ha='center', va='center', zorder=0)
+                self.text(*tick[1], t, fontsize=9, ha=ha, va=va, zorder=0)
             )
 
     def _draw_background(self) -> None:
@@ -205,18 +233,26 @@ class CompSpace2DAxes(Axes):
         self._apply_base_axes_style()
         self._draw_background()
 
-    def _redraw_labels(self) -> None:
+    def _redraw_labels(self, space: float = None) -> None:
 
         """
         Redraw vertex labels (keep lines/collections).
+
+        :param space: spacing of the labels from the vertices, if None, use default ones
         """
 
         # Remove all previously drawn vertices label artists
         remove_handles(self._label_handles, keyword='is_prim_label')
         # Draw the vertex labels again
-        self._draw_prim_labels()
+        self._draw_prim_labels(space)
 
-    def _draw_sec_labels(self) -> None:
+    def _draw_sec_labels(self, space: float = None) -> None:
+
+        """
+        Draw secondary (edge) labels centered on each edge, rotated to align with the edge orientation.
+
+        :param space: spacing of the labels from the edges, if None, use default ones
+        """
 
         # Function to calculate the rotation angle of the text
         def rot(_v0: np.ndarray, _v1: np.ndarray):
@@ -228,6 +264,9 @@ class CompSpace2DAxes(Axes):
             angle += 180 if angle <= -90 else -180 if angle > 90 else 0
             return angle
 
+        # Use the default spacing if none is provided
+        default = (self._SEC_LABEL_SPACE_L if self._show_ticks else self._SEC_LABEL_SPACE_S)
+        space = default if space is None else space
         # Iterate over all consecutive pairs of vertices
         _verts_r = np.roll(self._vertices, -1, axis=0)
         labels = np.roll(self._sec_labels, -1)
@@ -240,7 +279,7 @@ class CompSpace2DAxes(Axes):
             # Get the normal vector
             n_vec = r_cw / np.linalg.norm(r_cw)
             # Use the midpoint and the normal vector to determine the text position
-            x, y = midpoint + self._sec_label_space * n_vec
+            x, y = midpoint + space * n_vec
             # Draw the text, create a custom attribute to identify it later
             txt = self.text(x, y, label, ha='center', va='center', rotation=rot(v0, v1), rotation_mode='anchor',
                             transform_rotates_text=True, fontsize=10, zorder=0)
@@ -304,19 +343,33 @@ class CompSpace2DAxes(Axes):
         # Redraw the background
         self._redraw_background()
 
-    def set_labels(self, labels: list[str]):
+    def set_labels(self, labels: list[str], space: float = None) -> None:
+
+        """
+        Set the primary (vertex) labels and optionally their spacing from the vertices.
+
+        :param labels: list of vertex labels, must match the number of components/dimensions
+        :param space: spacing of the labels from the vertices, if None, use default ones
+        """
 
         # Store the labels internally
         self._prim_labels = labels
         # Redraw the vertex labels
-        self._redraw_labels()
+        self._redraw_labels(space)
 
-    def set_sec_labels(self, labels: list[str]):
+    def set_sec_labels(self, labels: list[str], space: float = None):
+
+        """
+        Set the secondary (edge) labels and optionally their spacing from the edges.
+
+        :param labels: list of edge labels, must match the number of components/dimensions
+        :param space: spacing of the labels from the edges, if None, use default ones
+        """
 
         # Store the secondary labels internally
         self._sec_labels = labels
         # Draw the secondary labels
-        self._draw_sec_labels()
+        self._draw_sec_labels(space)
 
     def set_dim(self, n: int) -> None:
 
