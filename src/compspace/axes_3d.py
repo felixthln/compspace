@@ -36,7 +36,7 @@ class CompSpace3DAxes(Axes3D):
     name = 'compspace3D'
 
     # Label and tick parameters
-    _label_space: float = 0.25
+    _label_space: float = 0.2
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -145,7 +145,7 @@ class CompSpace3DAxes(Axes3D):
                 **kwargs) -> CompSpaceScatter:
 
         # Convert the compositions to a numpy array if a DataFrame is provided, store the column names as labels
-        labels = comps.columns.to_list() if isinstance(comps, pd.DataFrame) else labels
+        labels = comps.columns.to_list() if isinstance(comps, pd.DataFrame) and labels is None else labels
         comps = comps.values if isinstance(comps, pd.DataFrame) else comps
         # Get the number of components from the compositions
         n_dim = comps.shape[1]
@@ -166,6 +166,8 @@ class CompSpace3DAxes(Axes3D):
         # Convert barycentric rows to XY and call the base Axes.scatter
         cart = bary_to_cart(comps, self._vertices)
         self._has_data = True
+        # Set the default displaying angle
+        super().view_init(elev=10, azim=-55)
         # Forward the scatter call to the parent class
         paths = super().scatter(cart[:, 0], cart[:, 1], cart[:, 2], *args, **kwargs)
         # Wrap the collection path in a container to allow updating the data

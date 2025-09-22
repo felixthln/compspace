@@ -295,7 +295,7 @@ class CompSpace2DAxes(Axes):
             sc = super().scatter(*args, **kwargs)
             return CompSpaceScatter([sc], self._vertices)
         # Convert the compositions to a numpy array if a DataFrame is provided, store the column names as labels
-        labels = comps.columns.to_list() if isinstance(comps, pd.DataFrame) else labels
+        labels = comps.columns.to_list() if isinstance(comps, pd.DataFrame) and labels is None else labels
         comps = comps.values if isinstance(comps, pd.DataFrame) else comps
         # Get the number of components from the compositions
         n_dim = comps.shape[1]

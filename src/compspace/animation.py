@@ -1,17 +1,18 @@
+from pathlib import Path
 from matplotlib.figure import Figure
 from mpl_toolkits.mplot3d.axes3d import Axes3D
 from matplotlib.animation import FuncAnimation
 import ffmpeg  # Needed for saving the animation with matplotlib
 
 
-def rot_animation(fig: Figure, ax: Axes3D, file_name: str, elev: float = 10, dpi: int = 200, fps: int = 30) -> None:
+def rot_animation(fig: Figure, ax: Axes3D, path: str | Path, elev: float = 10, dpi: int = 200, fps: int = 30) -> None:
 
     """
     Creates and saves a 3D rotation animation of a given figure and axis.
 
     :param fig: matplotlib figure object
     :param ax: matplotlib axes object with 3D configurations
-    :param file_name: combination of path and filename the animation will be stored in
+    :param path: combination of path and filename the animation will be stored in
     :param elev: elevation of the 3D figure in degrees, defaults to 10°
     :param dpi: resolution of the saved animation, defaults to 200
     :param fps: frames per second of the saved animation, defaults to 30
@@ -28,4 +29,4 @@ def rot_animation(fig: Figure, ax: Axes3D, file_name: str, elev: float = 10, dpi
     # Create the animation object
     anim = FuncAnimation(fig, animate, frames=360, interval=20)
     # Save
-    anim.save(file_name, dpi=dpi, fps=fps)
+    anim.save(path, dpi=dpi, fps=fps)
