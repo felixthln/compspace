@@ -19,7 +19,7 @@ def rot_animation(fig: Figure, ax: Axes3D, path: str | Path, elev: float = 10, d
     """
 
     # Check if the given axis is configured for 3D and raise error if not
-    if ax.name != '3d':
+    if ax.name != '3d' and ax.name != 'compspace3D':
         raise ValueError('The specified axis needs to be a 3D object. Create it e.g. by plt.axes(projection=\'3d\').')
 
     # Define the rotation animation

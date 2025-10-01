@@ -39,7 +39,5 @@ def plot_on_comp_space(compositions: pd.DataFrame | np.ndarray | list[pd.DataFra
     # Plot the data
     for comp in compositions:
         ax.scatter(comp, *args, labels=labels, **kwargs)
-    # Show the plot
-    plt.show()
     # Return the figure and axis
     return fig, ax
