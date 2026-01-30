@@ -90,7 +90,7 @@ class CompSpace2DAxes(Axes):
         # Generate the axes from the vertices
         axes = np.array(list(combinations(self._vertices, 2)))
         self._bg_handles.append(
-            self.add_collection(LineCollection(axes, colors='black', linewidth=1.2, zorder=0))
+            self.add_collection(LineCollection(axes, colors='black', linewidth=1.2, zorder=0, capstyle='round'))
         )
 
     def _draw_prim_labels(self, space: float = None) -> None:
