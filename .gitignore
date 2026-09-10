@@ -3,3 +3,5 @@
 # Don't include local builds and distributions
 build
 dist
+
+CLAUDE.md
