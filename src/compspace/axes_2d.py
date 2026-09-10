@@ -5,7 +5,7 @@ from matplotlib.axes import Axes
 from matplotlib.collections import LineCollection
 
 from .utility import bary_to_cart, remove_handles
-from .containers import CompSpaceScatter
+from .containers import CompSpaceScatter, CompSpaceLine
 
 
 def _gen_vertices(n: int) -> np.ndarray:
@@ -40,12 +40,12 @@ class CompSpace2DAxes(Axes):
 
     # Label spacing parameters for the labels. The default spacings are dependent on whether tick labels are shown
     _PRIM_LABEL_SPACE_S: float = 0.08
-    _PRIM_LABEL_SPACE_L: float = 0.25
+    _PRIM_LABEL_SPACE_L: float = 0.28
     _SEC_LABEL_SPACE_S: float = 0.1
     _SEC_LABEL_SPACE_L: float = 0.25
     # Label and tick parameters
     _tick_len: float = 0.02
-    _tick_label_space: float = 0.01
+    _tick_label_space: float = 0.03
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -149,50 +149,79 @@ class CompSpace2DAxes(Axes):
             self.add_collection(LineCollection(grid, colors='black', linewidths=0.6, alpha=0.35, zorder=0))
         )
 
-    @staticmethod
-    def _gen_ticks(grid: np.ndarray, tick_len: float) -> np.ndarray:
+    def _edge_normals(self) -> np.ndarray:
 
-        # Split the grid into start and end points
-        p1, p2 = grid[:, 0, :], grid[:, 1, :]
-        # Calculate direction vectors and unit directions
-        d = p2 - p1
-        # Manage division warnings for zero-length segments
-        with np.errstate(invalid='ignore', divide='ignore'):
-            u = d / np.linalg.norm(d, axis=1, keepdims=True)
-        # Replace a nan row with the following row, this happens at the corners of the polygon
-        mask = np.isnan(u).all(axis=1)
-        u[mask] = u[np.where(mask)[0] + 1]
-        # Extend the end points by the tick length
-        p3 = p2 + u * tick_len
-        # Stack the original end points and the extended points to form tick segments
-        return np.stack([p2, p3], axis=1)
+        """
+        Calculate the outward pointing unit normals of the polygon edges, edge i leads from vertex i to vertex i + 1.
 
-    def _draw_ticks(self) -> np.ndarray:
+        :returns: (n, 2) array of unit normals
+        """
 
-        # Generate the ticks from a grid
-        grid = self._gen_grid(self._tick_positions)
-        ticks = self._gen_ticks(grid, self._tick_len)
+        # Pair each vertex with its successor to get the edge vectors
+        edges = np.roll(self._vertices, -1, axis=0) - self._vertices
+        # Rotate them clockwise (+y, -x), as the vertices are ordered counter clockwise this turns them outwards
+        normals = np.stack([edges[:, 1], -edges[:, 0]], axis=1)
+        # Scale them to unit length
+        return normals / np.linalg.norm(normals, axis=1, keepdims=True)
+
+    def _gen_ticks(self, positions: np.ndarray, length: float) -> np.ndarray:
+
+        """
+        Generate the tick segments sitting on the edges of the polygon. Every edge carries the fraction of one
+        component, growing from 0 at the start vertex of the edge to 1 at its end vertex. A tick continues the grid
+        line of that component outwards, so following a tick back into the polygon traces the iso-composition line
+        it labels.
+
+        :param positions: fractions along the edges at which the ticks are placed
+        :param length: length of the tick segments
+        :returns: (n_edges * n_positions, 2, 2) array of tick start and end points
+        """
+
+        segments = []
+        # Walk along the edges of the polygon, an edge leads from vertex j to vertex k
+        for j in range(self._n_dim):
+            k, m = (j + 1) % self._n_dim, (j + 2) % self._n_dim
+            # The edge is labelled with the fraction of component k, whose iso-lines run parallel to the connection
+            # of the vertices j and m. Pointing from m to j means pointing out of the polygon
+            u = self._vertices[j] - self._vertices[m]
+            u = u / np.linalg.norm(u)
+            # Anchor the ticks on the edge and extend them outwards along the iso-line
+            for pos in positions:
+                anchor = (1 - pos) * self._vertices[j] + pos * self._vertices[k]
+                segments.append(np.stack([anchor, anchor + u * length], axis=0))
+        # Combine all tick segments into a single array
+        return np.stack(segments, axis=0)
+
+    def _draw_ticks(self) -> None:
+
+        # Generate the ticks along the edges
+        ticks = self._gen_ticks(self._tick_positions, self._tick_len)
         # Draw the ticks as a LineCollection
         self._bg_handles.append(
             self.add_collection(LineCollection(ticks, colors='black', linewidths=1.0, zorder=0))
         )
-        # Return the ticks to reuse them for the labels
-        return ticks
 
-    def _draw_tick_labels(self, ticks: np.ndarray) -> None:
+    def _draw_tick_labels(self) -> None:
 
         # Generate the tick labels based on the number of segments
         labels = (self._tick_positions * 100).astype(int).astype(str)
-        # Generate longer ticks for finding the label positions further out than the tick ends
-        ticks = self._gen_ticks(ticks, self._tick_len + self._tick_label_space)
+        # Generate longer ticks to place the labels one tick length beyond the tick ends
+        ticks = self._gen_ticks(self._tick_positions, 2 * self._tick_len + self._tick_label_space)
+        # The ticks are generated edge by edge, so the outward normal of the edge a label belongs to is known
+        normals = np.repeat(self._edge_normals(), len(labels), axis=0)
         # Plot the text next to the ticks
-        for tick, t in zip(ticks, np.tile(labels, self._vertices.shape[0])):
+        for tick, t, n_vec in zip(ticks, np.tile(labels, self._n_dim), normals):
             # Compute the angle of the tick vector
             x, y = tick[1] - tick[0]
             a = np.degrees(np.arctan2(y, x))
             # Decide on horizontal and vertical alignment based on the angle
             ha = 'center' if (_is_close(a, 90) or _is_close(a, -90)) else 'left' if -90 < a < 90 else 'right'
-            va = 'center' if (_is_close(a, 0) or _is_close(a, 180)) else 'bottom' if a > 0 else 'top'
+            # A steep edge is already cleared by a label placed to its left or right, so the label only needs to be
+            # centered vertically. Flat edges, edges which are neither steep nor flat (e.g. those of a quaternary
+            # square) and labels sitting right above or below their tick end have to keep clear vertically instead
+            steep = abs(n_vec[0]) > abs(n_vec[1]) and not _is_close(abs(n_vec[0]), abs(n_vec[1]))
+            centered = (steep and ha != 'center') or _is_close(a, 0) or _is_close(a, 180)
+            va = 'center' if centered else 'bottom' if a > 0 else 'top'
             # Draw the text
             self._bg_handles.append(
                 self.text(*tick[1], t, fontsize=9, ha=ha, va=va, zorder=0)
@@ -212,8 +241,8 @@ class CompSpace2DAxes(Axes):
         self._draw_vertices()
         # If the ticks are enabled, draw ticks and labels
         if self._show_ticks:
-            ticks = self._draw_ticks()
-            self._draw_tick_labels(ticks)
+            self._draw_ticks()
+            self._draw_tick_labels()
         # If the grid is enabled, draw grid
         if self._show_grid:
             self._draw_grid()
@@ -242,7 +271,7 @@ class CompSpace2DAxes(Axes):
         """
 
         # Remove all previously drawn vertices label artists
-        remove_handles(self._label_handles, keyword='is_prim_label')
+        remove_handles(self._label_handles, keyword='_is_prim_label')
         # Draw the vertex labels again
         self._draw_prim_labels(space)
 
@@ -270,14 +299,12 @@ class CompSpace2DAxes(Axes):
         # Iterate over all consecutive pairs of vertices
         _verts_r = np.roll(self._vertices, -1, axis=0)
         labels = np.roll(self._sec_labels, -1)
+        normals = self._edge_normals()
         for i, (v0, v1, label) in enumerate(zip(self._vertices, _verts_r, labels)):
             # Calculate their midpoint
             midpoint = 0.5 * (v0 + v1)
-            # Rotate clockwise to get the normal (+y, -x) and then flip to turn outwards
-            v01 = v1 - v0
-            r_cw = np.array([v01[1], -v01[0]])
-            # Get the normal vector
-            n_vec = r_cw / np.linalg.norm(r_cw)
+            # Get the outward normal of the edge
+            n_vec = normals[i]
             # Use the midpoint and the normal vector to determine the text position
             x, y = midpoint + space * n_vec
             # Draw the text, create a custom attribute to identify it later
@@ -286,14 +313,9 @@ class CompSpace2DAxes(Axes):
             txt._is_sec_label = True
             self._label_handles.append(txt)
 
-    def scatter(self, comps: np.ndarray | pd.DataFrame = None, *args, labels: list[str] = None,
-                **kwargs) -> CompSpaceScatter:
+    # Prepares compositions and updates the background before performing the actual plotting
+    def _prepare_comps(self, comps: np.ndarray | pd.DataFrame, labels: list[str] | None) -> tuple[np.ndarray, int]:
 
-        # Allow to call scatter without data to generate a blank scatter to populate later
-        if comps is None:
-            # Create an empty scatter plot and wrap it in the container
-            sc = super().scatter(*args, **kwargs)
-            return CompSpaceScatter([sc], self._vertices)
         # Convert the compositions to a numpy array if a DataFrame is provided, store the column names as labels
         labels = comps.columns.to_list() if isinstance(comps, pd.DataFrame) and labels is None else labels
         comps = comps.values if isinstance(comps, pd.DataFrame) else comps
@@ -318,18 +340,53 @@ class CompSpace2DAxes(Axes):
         # Convert barycentric rows to XY and call the base Axes.scatter
         cart = bary_to_cart(comps, self._vertices)
         self._has_data = True
+        # Return the cartesian coordinates
+        return cart
+
+    def scatter(self, comps: np.ndarray | pd.DataFrame = None, *args, labels: list[str] = None,
+                **kwargs) -> CompSpaceScatter:
+
+        # Allow calling scatter without data to generate a blank scatter to populate later
+        if comps is None:
+            sc = super().scatter(*args, **kwargs)
+            return CompSpaceScatter([sc], self._vertices)
+        # Prepare the compositions
+        cart = self._prepare_comps(comps, labels)
         # Forward the scatter call to the parent class
         sc = super().scatter(cart[:, 0], cart[:, 1], *args, **kwargs)
         # Wrap the collection path in a container to allow updating the data
         return CompSpaceScatter([sc], self._vertices)
 
-    def set_ticks(self, show: bool = True, ticks: list[str] = None):
+    def plot(self, comps: np.ndarray | pd.DataFrame = None, *args, labels: list[str] = None, **kwargs) -> CompSpaceLine:
+
+        # Allow calling scatter without data to generate a blank scatter to populate later
+        if comps is None:
+            lines = super().plot(*args, **kwargs)
+            return CompSpaceLine(lines, self._vertices)
+        # Prepare the compositions
+        cart = self._prepare_comps(comps, labels)
+        # Forward the scatter call to the parent class
+        lines = super().plot(cart[:, 0], cart[:, 1], *args, **kwargs)
+        # Wrap the plot in a container to allow updating the data
+        return CompSpaceLine(lines, self._vertices)
+
+    def set_ticks(self, show: bool = True, ticks: list[float] | np.ndarray = None, space: float = None):
+
+        """
+        Toggle the ticks, set their positions and optionally the spacing of the tick labels from the tick ends.
+
+        :param show: whether to draw the ticks and their labels
+        :param ticks: tick positions in percent, defaults to steps of 10 %
+        :param space: spacing of the tick labels from the tick ends, if None, keep the current one
+        """
 
         # Convert the ticks to a numpy array and convert percentages to fractions
         ticks = np.asarray(ticks) / 100 if ticks is not None else np.linspace(0, 1, 11)
         self._tick_positions = ticks
         # Toggle the ticks
         self._show_ticks = show
+        # Move the tick labels further out or closer in if a spacing is provided
+        self._tick_label_space = space if space is not None else self._tick_label_space
         # Redraw the background
         self._redraw_background()
 
