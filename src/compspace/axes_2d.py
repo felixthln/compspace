@@ -4,14 +4,14 @@ from itertools import combinations
 from matplotlib.axes import Axes
 from matplotlib.collections import LineCollection
 
-from .utility import bary_to_cart, remove_handles
+from .utility import bary_to_cart, group_comps, remove_handles
 from .containers import CompSpaceScatter, CompSpaceLine
 
 
 def _gen_vertices(n: int) -> np.ndarray:
 
     """
-    Create an n-gon (equal edge lengths) in counter clock wise order, then uniformly scale & center it into a
+    Create an n-gon (equal edge lengths) in counter-clock wise order, then uniformly scale & center it into a
     standard plotting frame: x ∈ [0, 1]  and  y ∈ [0, sqrt(3)/2]. The identical frame across all n keeps padding,
     label offsets, and tick lengths consistent for ternary/quaternary/quinary plots.
     """
@@ -314,8 +314,11 @@ class CompSpace2DAxes(Axes):
             self._label_handles.append(txt)
 
     # Prepares compositions and updates the background before performing the actual plotting
-    def _prepare_comps(self, comps: np.ndarray | pd.DataFrame, labels: list[str] | None) -> tuple[np.ndarray, int]:
+    def _prepare_comps(self, comps: np.ndarray | pd.DataFrame,
+                       labels: list[str | list[str]] | None) -> tuple[np.ndarray, int]:
 
+        # Sum up components which are grouped together in the labels and merge their names
+        comps, labels = group_comps(comps, labels)
         # Convert the compositions to a numpy array if a DataFrame is provided, store the column names as labels
         labels = comps.columns.to_list() if isinstance(comps, pd.DataFrame) and labels is None else labels
         comps = comps.values if isinstance(comps, pd.DataFrame) else comps
@@ -343,8 +346,8 @@ class CompSpace2DAxes(Axes):
         # Return the cartesian coordinates
         return cart
 
-    def scatter(self, comps: np.ndarray | pd.DataFrame = None, *args, labels: list[str] = None,
-                **kwargs) -> CompSpaceScatter:
+    def scatter(self, comps: np.ndarray | pd.DataFrame = None, *args,
+                labels: list[str | list[str]] = None, **kwargs) -> CompSpaceScatter:
 
         # Allow calling scatter without data to generate a blank scatter to populate later
         if comps is None:
@@ -357,7 +360,8 @@ class CompSpace2DAxes(Axes):
         # Wrap the collection path in a container to allow updating the data
         return CompSpaceScatter([sc], self._vertices)
 
-    def plot(self, comps: np.ndarray | pd.DataFrame = None, *args, labels: list[str] = None, **kwargs) -> CompSpaceLine:
+    def plot(self, comps: np.ndarray | pd.DataFrame = None, *args,
+             labels: list[str | list[str]] = None, **kwargs) -> CompSpaceLine:
 
         # Allow calling scatter without data to generate a blank scatter to populate later
         if comps is None:

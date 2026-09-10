@@ -4,7 +4,7 @@ from itertools import combinations
 from mpl_toolkits.mplot3d.axes3d import Axes3D
 from mpl_toolkits.mplot3d.art3d import Line3DCollection
 
-from .utility import bary_to_cart, remove_handles
+from .utility import bary_to_cart, group_comps, remove_handles
 from .containers import CompSpaceScatter
 
 
@@ -141,9 +141,11 @@ class CompSpace3DAxes(Axes3D):
         # Draw the vertex labels again
         self._draw_labels()
 
-    def scatter(self, comps: np.ndarray | pd.DataFrame, *args, labels: list[str] = None,
+    def scatter(self, comps: np.ndarray | pd.DataFrame, *args, labels: list[str | list[str]] = None,
                 **kwargs) -> CompSpaceScatter:
 
+        # Sum up components which are grouped together in the labels and merge their names
+        comps, labels = group_comps(comps, labels)
         # Convert the compositions to a numpy array if a DataFrame is provided, store the column names as labels
         labels = comps.columns.to_list() if isinstance(comps, pd.DataFrame) and labels is None else labels
         comps = comps.values if isinstance(comps, pd.DataFrame) else comps

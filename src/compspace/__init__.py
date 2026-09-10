@@ -4,7 +4,7 @@ from .axes_2d import CompSpace2DAxes
 from .axes_3d import CompSpace3DAxes
 from .animation import rot_animation
 from .convenience import plot_on_comp_space
-from .utility import bary_to_cart
+from .utility import bary_to_cart, group_comps
 
 
 # Restore old 3D rotation style for Matplotlib >= 3.10
